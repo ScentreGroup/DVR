@@ -7,16 +7,14 @@ struct Interaction {
     let request: URLRequest
     let response: Foundation.URLResponse
     let responseData: Data?
-    let recordedAt: Date
 
 
     // MARK: - Initializers
 
-    init(request: URLRequest, response: Foundation.URLResponse, responseData: Data? = nil, recordedAt: Date = Date()) {
+    init(request: URLRequest, response: Foundation.URLResponse, responseData: Data? = nil) {
         self.request = request
         self.response = response
         self.responseData = responseData
-        self.recordedAt = recordedAt
     }
 
 
@@ -78,7 +76,6 @@ extension Interaction {
     var dictionary: [String: Any] {
         var dictionary: [String: Any] = [
             "request": request.dictionary,
-            "recorded_at": recordedAt.timeIntervalSince1970
         ]
 
         var responseDictionary = self.response.dictionary
@@ -99,12 +96,10 @@ extension Interaction {
 
     init?(dictionary: [String: Any]) {
         guard let request = dictionary["request"] as? [String: Any],
-            let response = dictionary["response"] as? [String: Any],
-            let recordedAt = dictionary["recorded_at"] as? TimeInterval else { return nil }
+            let response = dictionary["response"] as? [String: Any] else { return nil }
 
         self.request = NSMutableURLRequest(dictionary: request) as URLRequest
         self.response = HTTPURLResponse(dictionary: response)
-        self.recordedAt = Date(timeIntervalSince1970: recordedAt)
         self.responseData = Interaction.dencodeBody(response["body"], headers: response["headers"] as? [String: String])
     }
 }
