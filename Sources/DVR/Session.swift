@@ -19,7 +19,6 @@ open class Session: URLSession {
     private var needsPersistence = false
     private var outstandingTasks = [URLSessionTask]()
     private var completedInteractions = [Interaction]()
-    private var completionBlock: (() -> Void)?
 
     override open var delegate: URLSessionDelegate? {
         return backingSession.delegate
@@ -103,23 +102,17 @@ open class Session: URLSession {
         needsPersistence = false
         outstandingTasks = []
         completedInteractions = []
-        completionBlock = nil
     }
 
     /// This only needs to be called if you call `beginRecording`. `completion` will be called on the main queue after
     /// the completion block of the last task is called. `completion` is useful for fulfilling an expectation you setup
     /// before calling `beginRecording`.
-    open func endRecording(_ completion: (() -> Void)? = nil) {
+    open func endRecording() {
         if !recording {
             return
         }
 
         recording = false
-        completionBlock = completion
-
-        if outstandingTasks.count == 0 {
-            finishRecording()
-        }
     }
 
 
@@ -144,8 +137,8 @@ open class Session: URLSession {
 
         completedInteractions.append(interaction)
 
-        if !recording && outstandingTasks.count == 0 {
-            finishRecording()
+        if needsPersistence {
+            persist(completedInteractions)
         }
 
         if let delegate = delegate as? URLSessionDataDelegate, let task = task as? URLSessionDataTask, let data = interaction.responseData {
@@ -196,9 +189,9 @@ open class Session: URLSession {
     }
 
     private func persist(_ interactions: [Interaction]) {
-        defer {
-            abort()
-        }
+//        defer {
+//            abort()
+//        }
 
         // Create directory
         let outputDirectory = (self.outputDirectory as NSString).expandingTildeInPath
@@ -237,17 +230,5 @@ open class Session: URLSession {
         } catch {
             print("[DVR] Failed to persist cassette.")
         }
-    }
-
-    private func finishRecording() {
-        if needsPersistence {
-            persist(completedInteractions)
-        }
-
-        // Clean up
-        completedInteractions = []
-
-        // Call session’s completion block
-        completionBlock?()
     }
 }
