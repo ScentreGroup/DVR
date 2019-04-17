@@ -17,7 +17,7 @@ class SessionUploadTests: XCTestCase {
     }()
 
     func testUploadFile() {
-        let session = Session(cassetteName: "upload-file")
+        let session = Session(cassetteName: "upload-file")!
         session.recordingEnabled = false
         let expectation = self.expectation(description: "Network")
 
@@ -42,7 +42,7 @@ class SessionUploadTests: XCTestCase {
     }
 
     func testUploadData() {
-        let session = Session(cassetteName: "upload-data")
+        let session = Session(cassetteName: "upload-data")!
         session.recordingEnabled = false
         let expectation = self.expectation(description: "Network")
 

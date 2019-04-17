@@ -7,14 +7,10 @@ class SessionTests: XCTestCase {
         let configuration = URLSessionConfiguration.default
         configuration.httpAdditionalHeaders = ["testSessionHeader": "testSessionHeaderValue"]
         let backingSession = URLSession(configuration: configuration)
-        return Session(cassetteName: "example", backingSession: backingSession)
+        return Session(cassetteName: "example", backingSession: backingSession)!
     }()
 
     let request = URLRequest(url: URL(string: "http://example.com")!)
-
-    func testInit() {
-        XCTAssertEqual("example", session.cassetteName)
-    }
 
     func testDataTask() {
         let request = URLRequest(url: URL(string: "http://example.com")!)
@@ -87,7 +83,7 @@ class SessionTests: XCTestCase {
     }
 
     func testTextPlayback() {
-        let session = Session(cassetteName: "text")
+        let session = Session(cassetteName: "text")!
         session.recordingEnabled = false
 
         var request = URLRequest(url: URL(string: "http://example.com")!)
@@ -112,7 +108,7 @@ class SessionTests: XCTestCase {
     func testDownload() {
         let expectation = self.expectation(description: "Network")
 
-        let session = Session(cassetteName: "json-example")
+        let session = Session(cassetteName: "json-example")!
         session.recordingEnabled = false
 
         let request = URLRequest(url: URL(string: "https://www.howsmyssl.com/a/check")!)
@@ -137,7 +133,7 @@ class SessionTests: XCTestCase {
 
     func testMultiple() {
         let expectation = self.expectation(description: "Network")
-        let session = Session(cassetteName: "multiple")
+        let session = Session(cassetteName: "multiple")!
         session.beginRecording()
 
         let apple = self.expectation(description: "Apple")
@@ -152,9 +148,10 @@ class SessionTests: XCTestCase {
                     google.fulfill()
                 }) .resume()
 
-                session.endRecording() {
+                session.endRecording()
+//                session.flush {
                     expectation.fulfill()
-                }
+//                }
             }
 
             apple.fulfill()
@@ -182,7 +179,7 @@ class SessionTests: XCTestCase {
         let delegate = Delegate(expectation: expectation)
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        let session = Session(cassetteName: "example", backingSession: backingSession)
+        let session = Session(cassetteName: "example", backingSession: backingSession)!
         session.recordingEnabled = false
 
         let task = session.dataTask(with: request)
@@ -208,7 +205,7 @@ class SessionTests: XCTestCase {
         let delegate = Delegate(expectation: expectation)
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        let session = Session(cassetteName: "example", backingSession: backingSession)
+        let session = Session(cassetteName: "example", backingSession: backingSession)!
         session.recordingEnabled = false
 
         let task = session.dataTask(with: request)
@@ -224,7 +221,7 @@ class SessionTests: XCTestCase {
 
         let config = URLSessionConfiguration.default
         let backingSession = URLSession(configuration: config)
-        let session = Session(cassetteName: "failed-request-example", backingSession: backingSession)
+        let session = Session(cassetteName: "failed-request-example", backingSession: backingSession)!
 
         let task = session.dataTask(with: request) { (_, urlResponse, _) in
             XCTAssertNotEqual(200, (urlResponse as? Foundation.HTTPURLResponse)?.statusCode)

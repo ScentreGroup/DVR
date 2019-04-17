@@ -1,43 +1,25 @@
 import Foundation
 
-open class Session: URLSession {
-
-    // MARK: - Properties
-
-    public static var defaultTestBundle: Bundle? {
-        return Bundle.allBundles.first { $0.bundlePath.hasSuffix(".xctest") }
-    }
-
-    open var outputDirectory: String
-    public let cassetteName: String
-    public let backingSession: URLSession
-    open var recordingEnabled = true
-
-    private let testBundle: Bundle
-
-    private var recording = false
-    private var needsPersistence = false
-    private var outstandingTasks = [URLSessionTask]()
-    private var completedInteractions = [Interaction]()
-
-    override open var delegate: URLSessionDelegate? {
-        return backingSession.delegate
-    }
-
-    open override var delegateQueue: OperationQueue {
-        return backingSession.delegateQueue
-    }
+public final class Session: URLSession {
 
     // MARK: - Initializers
 
-    public init(outputDirectory: String = "~/Desktop/DVR/", cassetteName: String, testBundle: Bundle = Session.defaultTestBundle!, backingSession: URLSession = URLSession.shared) {
-        self.outputDirectory = outputDirectory
-        self.cassetteName = cassetteName
-        self.testBundle = testBundle
-        self.backingSession = backingSession
+    public init(configuration: URLSessionConfiguration = .default, cassettes: [Cassette], delegate: URLSessionDelegate? = nil, delegateQueue queue: OperationQueue? = nil) {
+        _configuration = configuration
+        self.cassettes = cassettes
+        _delegate = delegate
+        _delegateQueue = queue ?? {
+            let queue = OperationQueue()
+            queue.name = "com.scentregroup.DVR.Session.delegateQueue"
+            queue.maxConcurrentOperationCount = 1
+            return queue
+        }()
         super.init()
     }
 
+    // MARK: - Properties
+
+    var cassettes: [Cassette]
 
     // MARK: - URLSession
     
@@ -49,186 +31,97 @@ open class Session: URLSession {
         return addDataTask(URLRequest(url: url), completionHandler: completionHandler)
     }
 
-    open override func dataTask(with request: URLRequest) -> URLSessionDataTask {
-        return addDataTask(request)
+    private var _configuration: URLSessionConfiguration
+    public override var configuration: URLSessionConfiguration {
+        return _configuration
     }
 
-    open override func dataTask(with request: URLRequest, completionHandler: @escaping ((Data?, Foundation.URLResponse?, Error?) -> Void)) -> URLSessionDataTask {
-        return addDataTask(request, completionHandler: completionHandler)
+    private var _delegate: URLSessionDelegate?
+    public override var delegate: URLSessionDelegate? {
+        return _delegate
     }
 
-    open override func downloadTask(with request: URLRequest) -> URLSessionDownloadTask {
-        return addDownloadTask(request)
+    private var _delegateQueue: OperationQueue
+    public override var delegateQueue: OperationQueue {
+        return _delegateQueue
     }
 
-    open override func downloadTask(with request: URLRequest, completionHandler: @escaping (URL?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionDownloadTask {
-        return addDownloadTask(request, completionHandler: completionHandler)
+    public override func dataTask(with request: URLRequest) -> URLSessionDataTask {
+        return _dataTask(with: request)
     }
 
-    open override func uploadTask(with request: URLRequest, from bodyData: Data) -> URLSessionUploadTask {
-        return addUploadTask(request, fromData: bodyData)
+    public override func dataTask(with request: URLRequest, completionHandler: @escaping ((Data?, Foundation.URLResponse?, Error?) -> Void)) -> URLSessionDataTask {
+        return _dataTask(with: request, completionHandler: completionHandler)
     }
 
-    open override  func uploadTask(with request: URLRequest, from bodyData: Data?, completionHandler: @escaping (Data?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
-        return addUploadTask(request, fromData: bodyData, completionHandler: completionHandler)
-    }
-
-    open override func uploadTask(with request: URLRequest, fromFile fileURL: URL) -> URLSessionUploadTask {
-        let data = try! Data(contentsOf: fileURL)
-        return addUploadTask(request, fromData: data)
-    }
-
-    open override func uploadTask(with request: URLRequest, fromFile fileURL: URL, completionHandler: @escaping (Data?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
-        let data = try! Data(contentsOf: fileURL)
-        return addUploadTask(request, fromData: data, completionHandler: completionHandler)
-    }
-
-    open override func invalidateAndCancel() {
-        recording = false
-        outstandingTasks.removeAll()
-        backingSession.invalidateAndCancel()
-    }
-
-
-    // MARK: - Recording
-
-    /// You don’t need to call this method if you're only recoding one request.
-    open func beginRecording() {
-        if recording {
-            return
+    private func _dataTask(with request: URLRequest, completionHandler: ((Data?, Foundation.URLResponse?, Error?) -> Void)? = nil) -> URLSessionDataTask {
+        var modifiedRequest = request
+        if let httpAdditionalHeaders = configuration.httpAdditionalHeaders as? [String: String] {
+            for (field, value) in httpAdditionalHeaders {
+                if modifiedRequest.value(forHTTPHeaderField: field) == nil {
+                    modifiedRequest.addValue(value, forHTTPHeaderField: field)
+                }
+            }
         }
-
-        recording = true
-        needsPersistence = false
-        outstandingTasks = []
-        completedInteractions = []
+        return SessionDataTask(session: self, request: modifiedRequest, completionHandler: completionHandler)
     }
 
-    /// This only needs to be called if you call `beginRecording`. `completion` will be called on the main queue after
-    /// the completion block of the last task is called. `completion` is useful for fulfilling an expectation you setup
-    /// before calling `beginRecording`.
-    open func endRecording() {
-        if !recording {
-            return
-        }
-
-        recording = false
+    public override func downloadTask(with request: URLRequest) -> URLSessionDownloadTask {
+        fatalError("unimplemented")
     }
 
+    public override func downloadTask(with request: URLRequest, completionHandler: @escaping (URL?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionDownloadTask {
+        fatalError("unimplemented")
+    }
+
+    public override func uploadTask(with request: URLRequest, from bodyData: Data) -> URLSessionUploadTask {
+        fatalError("unimplemented")
+    }
+
+    public override  func uploadTask(with request: URLRequest, from bodyData: Data?, completionHandler: @escaping (Data?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
+        fatalError("unimplemented")
+    }
+
+    public override func uploadTask(with request: URLRequest, fromFile fileURL: URL) -> URLSessionUploadTask {
+        fatalError("unimplemented")
+    }
+
+    public override func uploadTask(with request: URLRequest, fromFile fileURL: URL, completionHandler: @escaping (Data?, Foundation.URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
+        fatalError("unimplemented")
+    }
+
+    public override func invalidateAndCancel() {
+    }
 
     // MARK: - Internal
 
-    var cassette: Cassette? {
-        guard let path = testBundle.path(forResource: cassetteName, ofType: "json"),
-            let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-            let raw = try? JSONSerialization.jsonObject(with: data, options: []),
-            let json = raw as? [String: Any]
-        else { return nil }
-
-        return Cassette(dictionary: json)
+    func interactionForRequest(_ request: URLRequest) -> Interaction? {
+        for cassette in cassettes {
+            if let interaction = cassette.interactionForRequest(request) {
+                return interaction
+            }
+        }
+        return nil
     }
 
-    func finishTask(_ task: URLSessionTask, interaction: Interaction, playback: Bool) {
-        needsPersistence = needsPersistence || !playback
-
-        if let index = outstandingTasks.firstIndex(of: task) {
-            outstandingTasks.remove(at: index)
+    func dataTask(_ task: URLSessionDataTask, didReceiveData data: Data) {
+        if let delegate = delegate as? URLSessionDataDelegate {
+            delegate.urlSession?(self, dataTask: task, didReceive: data)
         }
+    }
 
-        completedInteractions.append(interaction)
-
-        if needsPersistence {
-            persist(completedInteractions)
-        }
-
-        if let delegate = delegate as? URLSessionDataDelegate, let task = task as? URLSessionDataTask, let data = interaction.responseData {
-            delegate.urlSession?(self, dataTask: task, didReceive: data as Data)
-        }
-
+    func task(_ task: URLSessionTask, didCompleteWithError error: Error?) {
         if let delegate = delegate as? URLSessionTaskDelegate {
-            delegate.urlSession?(self, task: task, didCompleteWithError: nil)
+            delegate.urlSession?(self, task: task, didCompleteWithError: error)
         }
     }
+}
 
-
-    // MARK: - Private
-
-    private func addDataTask(_ request: URLRequest, completionHandler: ((Data?, Foundation.URLResponse?, NSError?) -> Void)? = nil) -> URLSessionDataTask {
-        let modifiedRequest = backingSession.configuration.httpAdditionalHeaders.map(request.appending) ?? request
-        let task = SessionDataTask(session: self, request: modifiedRequest, completion: completionHandler)
-        addTask(task)
-        return task
-    }
-
-    private func addDownloadTask(_ request: URLRequest, completionHandler: SessionDownloadTask.Completion? = nil) -> URLSessionDownloadTask {
-        let modifiedRequest = backingSession.configuration.httpAdditionalHeaders.map(request.appending) ?? request
-        let task = SessionDownloadTask(session: self, request: modifiedRequest, completion: completionHandler)
-        addTask(task)
-        return task
-    }
-
-    private func addUploadTask(_ request: URLRequest, fromData data: Data?, completionHandler: SessionUploadTask.Completion? = nil) -> URLSessionUploadTask {
-        var modifiedRequest = backingSession.configuration.httpAdditionalHeaders.map(request.appending) ?? request
-        modifiedRequest = data.map(modifiedRequest.appending) ?? modifiedRequest
-        let task = SessionUploadTask(session: self, request: modifiedRequest, completion: completionHandler)
-        addTask(task.dataTask)
-        return task
-    }
-
-    private func addTask(_ task: URLSessionTask) {
-        let shouldRecord = !recording
-        if shouldRecord {
-            beginRecording()
+extension Session {
+    public convenience init?(configuration: URLSessionConfiguration = .default, cassetteName: String, delegate: URLSessionDelegate? = nil, delegateQueue queue: OperationQueue? = nil) {
+        guard let cassette = Cassette(testResource: "\(cassetteName).json") else {
+            return nil
         }
-
-        outstandingTasks.append(task)
-
-        if shouldRecord {
-            endRecording()
-        }
-    }
-
-    private func persist(_ interactions: [Interaction]) {
-//        defer {
-//            abort()
-//        }
-
-        // Create directory
-        let outputDirectory = (self.outputDirectory as NSString).expandingTildeInPath
-        let fileManager = FileManager.default
-        if !fileManager.fileExists(atPath: outputDirectory) {
-            do {
-              try fileManager.createDirectory(atPath: outputDirectory, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-              print("[DVR] Failed to create cassettes directory.")
-            }
-        }
-
-        let cassette = Cassette(name: cassetteName, interactions: interactions)
-
-        // Persist
-
-
-        do {
-            let outputPath = ((outputDirectory as NSString).appendingPathComponent(cassetteName) as NSString).appendingPathExtension("json")!
-            let data = try JSONSerialization.data(withJSONObject: cassette.dictionary, options: [.prettyPrinted])
-
-            // Add trailing new line
-            guard var string = NSString(data: data, encoding: String.Encoding.utf8.rawValue) else {
-                print("[DVR] Failed to persist cassette.")
-                return
-            }
-            string = string.appending("\n") as NSString
-
-            if let data = string.data(using: String.Encoding.utf8.rawValue) {
-                try? data.write(to: URL(fileURLWithPath: outputPath), options: [.atomic])
-                print("[DVR] Persisted cassette at \(outputPath). Please add this file to your test target")
-                return
-            }
-
-            print("[DVR] Failed to persist cassette.")
-        } catch {
-            print("[DVR] Failed to persist cassette.")
-        }
+        self.init(configuration: configuration, cassettes: [cassette], delegate: delegate, delegateQueue: queue)
     }
 }

@@ -4,86 +4,61 @@ final class SessionDataTask: URLSessionDataTask {
 
     // MARK: - Types
 
-    typealias Completion = (Data?, Foundation.URLResponse?, NSError?) -> Void
+    typealias Completion = (Data?, Foundation.URLResponse?, Error?) -> Void
 
+    // MARK: - Initializers
+
+    init(session: Session, request: URLRequest, completionHandler: Completion? = nil) {
+        self.session = session
+        self.request = request
+        self.completionHandler = completionHandler
+    }
 
     // MARK: - Properties
 
-    weak var session: Session!
-    let request: URLRequest
-    let completion: Completion?
-    private let queue = DispatchQueue(label: "com.venmo.DVR.sessionDataTaskQueue", attributes: [])
+    unowned var session: Session
+    private let request: URLRequest
+    private let completionHandler: Completion?
     private var interaction: Interaction?
 
+    override var originalRequest: URLRequest? {
+        return request
+    }
+    override var currentRequest: URLRequest? {
+        return interaction?.request ?? request
+    }
     override var response: Foundation.URLResponse? {
         return interaction?.response
     }
 
-    override var currentRequest: URLRequest? {
-        return request
-    }
-
-
-    // MARK: - Initializers
-
-    init(session: Session, request: URLRequest, completion: (Completion)? = nil) {
-        self.session = session
-        self.request = request
-        self.completion = completion
-    }
-
-
     // MARK: - URLSessionTask
 
+    var _state: URLSessionTask.State?
+    override var state: URLSessionTask.State {
+        return _state ?? .suspended
+    }
+
     override func cancel() {
-        // Don't do anything
     }
 
     override func resume() {
-        let cassette = session.cassette
-
-        // Find interaction
-        if let interaction = session.cassette?.interactionForRequest(request) {
-            self.interaction = interaction
-            // Forward completion
-            if let completion = completion {
-                queue.async {
-                    completion(interaction.responseData, interaction.response, nil)
-                }
-            }
-            session.finishTask(self, interaction: interaction, playback: true)
+        guard let interaction = session.interactionForRequest(request) else {
+            session.task(self, didCompleteWithError: NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil))
             return
         }
 
-        if cassette != nil {
-            fatalError("[DVR] Invalid request. The request was not found in the cassette.")
+        self.interaction = interaction
+
+        if let completion = completionHandler {
+            session.delegateQueue.addOperation {
+                completion(interaction.responseData, interaction.response, nil)
+            }
         }
 
-        // Cassette is missing. Record.
-        if session.recordingEnabled == false {
-            fatalError("[DVR] Recording is disabled.")
+        if let data = interaction.responseData {
+            session.dataTask(self, didReceiveData: data)
         }
 
-        let task = session.backingSession.dataTask(with: request, completionHandler: { [weak self] data, response, error in
-
-            //Ensure we have a response
-            guard let response = response else {
-                fatalError("[DVR] Failed to record because the task returned a nil response.")
-            }
-
-            guard let this = self else {
-                fatalError("[DVR] Something has gone horribly wrong.")
-            }
-
-            // Still call the completion block so the user can chain requests while recording.
-            this.queue.async {
-                this.completion?(data, response, nil)
-            }
-
-            // Create interaction
-            this.interaction = Interaction(request: this.request, response: response, responseData: data)
-            this.session.finishTask(this, interaction: this.interaction!, playback: false)
-        })
-        task.resume()
+        session.task(self, didCompleteWithError: nil)
     }
 }
