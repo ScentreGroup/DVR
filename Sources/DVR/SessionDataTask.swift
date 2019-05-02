@@ -31,12 +31,19 @@ final class SessionDataTask: URLSessionDataTask {
 
     // MARK: - URLSessionTask
 
+    var _state: URLSessionTask.State?
+    override var state: URLSessionTask.State {
+        return _state ?? .suspended
+    }
+
     override func cancel() {
         // Don't do anything
     }
 
     override func resume() {
         let cassette = session.cassette
+
+        _state = .running
 
         // Find interaction
         if let interaction = session.cassette?.interactionForRequest(request) {
@@ -47,7 +54,15 @@ final class SessionDataTask: URLSessionDataTask {
                     completion(interaction.responseData, interaction.response, nil)
                 }
             }
-            session.finishTask(self, interaction: interaction, playback: true)
+
+            queue.async { [weak self] in
+                guard let self = self else {
+                    return
+                }
+
+                self._state = .completed
+                self.session.finishTask(self, interaction: interaction, playback: true)
+            }
             return
         }
 
@@ -75,6 +90,8 @@ final class SessionDataTask: URLSessionDataTask {
             this.queue.async {
                 this.completion?(data, response, nil)
             }
+
+            this._state = .completed
 
             // Create interaction
             this.interaction = Interaction(request: this.request, response: response, responseData: data)
