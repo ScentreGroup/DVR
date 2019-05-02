@@ -48,16 +48,14 @@ final class SessionDataTask: URLSessionDataTask {
         // Find interaction
         if let interaction = session.cassette?.interactionForRequest(request) {
             self.interaction = interaction
-            // Forward completion
-            if let completion = completion {
-                queue.async {
-                    completion(interaction.responseData, interaction.response, nil)
-                }
-            }
-
             queue.async { [weak self] in
                 guard let self = self else {
-                    return
+                    fatalError("[DVR] Something has gone horribly wrong.")
+                }
+
+                // Forward completion
+                if let completion = self.completion {
+                    completion(interaction.responseData, interaction.response, nil)
                 }
 
                 self._state = .completed
@@ -82,20 +80,24 @@ final class SessionDataTask: URLSessionDataTask {
                 fatalError("[DVR] Failed to record because the task returned a nil response.")
             }
 
-            guard let this = self else {
+            guard let self = self else {
                 fatalError("[DVR] Something has gone horribly wrong.")
             }
 
             // Still call the completion block so the user can chain requests while recording.
-            this.queue.async {
-                this.completion?(data, response, nil)
+            self.queue.async { [weak self] in
+                guard let self = self else {
+                    fatalError("[DVR] Something has gone horribly wrong.")
+                }
+
+                self.completion?(data, response, nil)
+
+                self._state = .completed
+
+                // Create interaction
+                self.interaction = Interaction(request: self.request, response: response, responseData: data)
+                self.session.finishTask(self, interaction: self.interaction!, playback: false)
             }
-
-            this._state = .completed
-
-            // Create interaction
-            this.interaction = Interaction(request: this.request, response: response, responseData: data)
-            this.session.finishTask(this, interaction: this.interaction!, playback: false)
         })
         task.resume()
     }
