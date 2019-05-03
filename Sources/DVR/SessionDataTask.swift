@@ -53,13 +53,13 @@ final class SessionDataTask: URLSessionDataTask {
                     fatalError("[DVR] Something has gone horribly wrong.")
                 }
 
+                self._state = .completed
+                self.session.finishTask(self, interaction: interaction, playback: true)
+
                 // Forward completion
                 if let completion = self.completion {
                     completion(interaction.responseData, interaction.response, nil)
                 }
-
-                self._state = .completed
-                self.session.finishTask(self, interaction: interaction, playback: true)
             }
             return
         }
@@ -90,13 +90,13 @@ final class SessionDataTask: URLSessionDataTask {
                     fatalError("[DVR] Something has gone horribly wrong.")
                 }
 
-                self.completion?(data, response, nil)
-
                 self._state = .completed
 
                 // Create interaction
                 self.interaction = Interaction(request: self.request, response: response, responseData: data)
                 self.session.finishTask(self, interaction: self.interaction!, playback: false)
+
+                self.completion?(data, response, nil)
             }
         })
         task.resume()
