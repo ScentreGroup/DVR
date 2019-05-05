@@ -12,7 +12,7 @@ final class SessionDataTask: URLSessionDataTask {
     weak var session: Session!
     let request: URLRequest
     let completion: Completion?
-    private let queue = DispatchQueue(label: "com.venmo.DVR.sessionDataTaskQueue", attributes: [])
+    private let queue: DispatchQueue
     private var interaction: Interaction?
 
     override var response: Foundation.URLResponse? {
@@ -26,6 +26,7 @@ final class SessionDataTask: URLSessionDataTask {
         self.session = session
         self.request = request
         self.completion = completion
+        queue = DispatchQueue(label: "com.venmo.DVR.sessionDataTaskQueue", qos: .userInitiated, attributes: [], target: session.delegateQueue.underlyingQueue)
     }
 
 
