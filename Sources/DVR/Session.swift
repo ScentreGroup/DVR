@@ -21,6 +21,10 @@ open class Session: URLSession {
     private var completedInteractions = [Interaction]()
     private var completionBlock: (() -> Void)?
 
+    open override var configuration: URLSessionConfiguration {
+        return .default
+    }
+
     override open var delegate: URLSessionDelegate? {
         return backingSession.delegate
     }
