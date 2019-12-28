@@ -22,14 +22,6 @@ public final class Session: URLSession {
     var cassettes: [Cassette]
 
     // MARK: - URLSession
-    
-    open override func dataTask(with url: URL) -> URLSessionDataTask {
-        return addDataTask(URLRequest(url: url))
-    }
-
-    open override func dataTask(with url: URL, completionHandler: @escaping ((Data?, Foundation.URLResponse?, Error?) -> Void)) -> URLSessionDataTask {
-        return addDataTask(URLRequest(url: url), completionHandler: completionHandler)
-    }
 
     private var _configuration: URLSessionConfiguration
     public override var configuration: URLSessionConfiguration {
@@ -44,6 +36,14 @@ public final class Session: URLSession {
     private var _delegateQueue: OperationQueue
     public override var delegateQueue: OperationQueue {
         return _delegateQueue
+    }
+
+    public override func dataTask(with url: URL) -> URLSessionDataTask {
+        return _dataTask(with: URLRequest(url: url))
+    }
+
+    public override func dataTask(with url: URL, completionHandler: @escaping ((Data?, Foundation.URLResponse?, Error?) -> Void)) -> URLSessionDataTask {
+        return _dataTask(with: URLRequest(url: url), completionHandler: completionHandler)
     }
 
     public override func dataTask(with request: URLRequest) -> URLSessionDataTask {
