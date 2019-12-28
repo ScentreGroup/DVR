@@ -1,6 +1,6 @@
 import Foundation
 
-#if canImport(Alamofire)
+//#if canImport(Alamofire)
 import Alamofire
 
 protocol RecorderWriter {
@@ -10,6 +10,8 @@ protocol RecorderWriter {
 public class Recorder {
     init(writer: RecorderWriter) {
         self.writer = writer
+
+        write()
     }
 
     let writer: RecorderWriter
@@ -24,7 +26,7 @@ public class Recorder {
             guard let request = task.originalRequest, let response = task.response else {
                 continue
             }
-            har.log.entries.append(HTTPArchive.Log.Entry(request: request, response: response))
+            har.log.entries.append(HTTPArchive.Log.Entry(request: request, response: response, responseData: responseDatasByRequestTask[task]))
         }
 
         try? writer.write(har: har)
@@ -32,16 +34,21 @@ public class Recorder {
 }
 
 class RecorderPathWriter: RecorderWriter {
-    init(path: String) {
-        self.path = path
+    init(url: URL) {
+        self.url = url
     }
 
-    let path: String
+    let url: URL
 
     func write(har: HTTPArchive) throws {
         let encoder = JSONEncoder()
+        if #available(iOSApplicationExtension 11.0, *) {
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        } else {
+            encoder.outputFormatting = [.prettyPrinted]
+        }
         let data = try encoder.encode(har)
-        try data.write(to: URL(fileURLWithPath: path))
+        try data.write(to: url)
     }
 }
 
@@ -76,12 +83,24 @@ extension Recorder {
 //        }
 //        self.init(path: path)
 //    }
-    public convenience init(path: String) {
-        self.init(writer: RecorderPathWriter(path: path))
+
+    public convenience init(url: URL) throws {
+        enum Error: Swift.Error {
+            case notFileURL
+        }
+
+        guard url.isFileURL else {
+            throw Error.notFileURL
+        }
+
+        let directory = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+
+        self.init(writer: RecorderPathWriter(url: url))
     }
 }
 
-#endif
+//#endif
 
 //    private func persist(_ interactions: [Interaction]) {
 //        defer {

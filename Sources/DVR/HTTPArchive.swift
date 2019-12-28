@@ -47,14 +47,14 @@ public struct HTTPArchive: Codable {
 }
 
 extension HTTPArchive.Log.Entry {
-    init(request: URLRequest, requestData: Data = Data(), response: URLResponse, responseData: Data = Data()) {
+    init(request: URLRequest, requestData: Data? = nil, response: URLResponse, responseData: Data? = nil) {
         self.request = Request(request, requestData)
         self.response = Response(response, responseData)
     }
 }
 
 extension HTTPArchive.Log.Entry.Request {
-    init(_ request: URLRequest, _ requestData: Data = Data()) {
+    init(_ request: URLRequest, _ requestData: Data? = nil) {
 //        self.httpVersion =
         self.method = request.httpMethod ?? ""
         self.url = request.url?.absoluteString ?? ""
@@ -67,13 +67,13 @@ extension HTTPArchive.Log.Entry.Request {
 }
 
 extension HTTPArchive.Log.Entry.Request.PostData {
-    init?(_ request: URLRequest, _ requestData: Data = Data()) {
+    init?(_ request: URLRequest, _ requestData: Data? = nil) {
         return nil
     }
 }
 
 extension HTTPArchive.Log.Entry.Response {
-    init(_ response: URLResponse, _ responseData: Data = Data()) {
+    init(_ response: URLResponse, _ responseData: Data? = nil) {
 //        self.httpVersion =
         self.status = (response as? HTTPURLResponse)?.statusCode ?? 0
         self.headers = (response as? HTTPURLResponse)?.allHeaderFields.compactMap({ (element) in
@@ -87,10 +87,15 @@ extension HTTPArchive.Log.Entry.Response {
 }
 
 extension HTTPArchive.Log.Entry.Response.Content {
-    init(_ response: URLResponse, _ responseData: Data = Data()) {
+    init(_ response: URLResponse, _ responseData: Data? = nil) {
         self.mimeType = response.mimeType ?? ""
-        self.encoding = response.textEncodingName
-        self.text = responseData.base64EncodedString()
+        if mimeType.starts(with: "text/") {
+    //        self.encoding =
+            self.text = responseData.flatMap({ String(data: $0, encoding: .utf8) }) ?? ""
+        } else {
+            self.encoding = "base64"
+            self.text = responseData?.base64EncodedString() ?? ""
+        }
     }
 }
 

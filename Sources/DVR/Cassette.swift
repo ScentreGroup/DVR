@@ -60,6 +60,13 @@ extension Cassette {
         self.init(path: path)
     }
 
+    public convenience init?(url: URL) {
+        guard url.isFileURL else {
+            return nil
+        }
+        self.init(path: url.path)
+    }
+
     public convenience init?(path: String) {
         do {
             let data = try Data(contentsOf: URL(fileURLWithPath: path))

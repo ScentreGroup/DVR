@@ -49,6 +49,8 @@ final class SessionDataTask: URLSessionDataTask {
 
         self.interaction = interaction
 
+        let session = self.session
+
         if let completion = completionHandler {
             session.delegateQueue.addOperation {
                 completion(interaction.responseData, interaction.response, nil)
@@ -56,9 +58,13 @@ final class SessionDataTask: URLSessionDataTask {
         }
 
         if let data = interaction.responseData {
-            session.dataTask(self, didReceiveData: data)
+            session.delegateQueue.addOperation {
+                session.dataTask(self, didReceiveData: data)
+            }
         }
 
-        session.task(self, didCompleteWithError: nil)
+        session.delegateQueue.addOperation {
+            session.task(self, didCompleteWithError: nil)
+        }
     }
 }
