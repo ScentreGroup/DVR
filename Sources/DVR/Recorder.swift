@@ -18,6 +18,7 @@ public class Recorder {
 
     private var requestTasks: [URLSessionTask] = []
     private var responseDatasByRequestTask: [URLSessionTask: Data] = [:]
+    private var metricsByRequestTask: [URLSessionTask: URLSessionTaskMetrics] = [:]
 
     func write() {
         var har = HTTPArchive(log: HTTPArchive.Log(version: "v1", entries: []))
@@ -26,6 +27,8 @@ public class Recorder {
             guard let request = task.originalRequest, let response = task.response else {
                 continue
             }
+            let metrics = metricsByRequestTask[task]
+            print(metrics)
             har.log.entries.append(HTTPArchive.Log.Entry(request: request, response: response, responseData: responseDatasByRequestTask[task]))
         }
 
@@ -66,6 +69,9 @@ extension Recorder: EventMonitor {
         write()
     }
 
+    public func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        metricsByRequestTask[task] = metrics
+    }
 }
 
 extension Recorder {
