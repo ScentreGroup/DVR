@@ -42,14 +42,16 @@ final class SessionDataTask: URLSessionDataTask {
     }
 
     override func resume() {
+        let session = self.session
+
         guard let interaction = session.interactionForRequest(request) else {
-            session.task(self, didCompleteWithError: NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil))
+            session.delegateQueue.addOperation {
+                session.task(self, didCompleteWithError: NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil))
+            }
             return
         }
 
         self.interaction = interaction
-
-        let session = self.session
 
         if let completion = completionHandler {
             session.delegateQueue.addOperation {
