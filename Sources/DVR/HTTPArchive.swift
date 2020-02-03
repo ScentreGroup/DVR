@@ -2,6 +2,14 @@ import Foundation
 
 public struct HTTPArchive: Codable {
     public struct Log: Codable {
+        public struct Creator: Codable {
+            /// The name of the application that created the log
+            public var name: String
+            /// The version number of the application that created the log
+            public var version: String
+            public var comment: String?
+        }
+
         public struct Entry: Codable {
             public struct Request: Codable {
                 public struct PostData: Codable {
@@ -39,7 +47,9 @@ public struct HTTPArchive: Codable {
             public var response: Response
         }
 
+        /// Version number of the format.
         public var version: String
+        public var creator: Creator
         public var entries: [Entry]
     }
 
@@ -47,22 +57,22 @@ public struct HTTPArchive: Codable {
 }
 
 extension HTTPArchive.Log.Entry {
-    init(request: URLRequest, requestData: Data? = nil, response: URLResponse, responseData: Data? = nil) {
+    init(request: URLRequest, requestData: Data? = nil, response: URLResponse, responseData: Data? = nil, metrics: URLSessionTaskMetrics? = nil) {
         self.request = Request(request, requestData)
         self.response = Response(response, responseData)
     }
 }
 
 extension HTTPArchive.Log.Entry.Request {
-    init(_ request: URLRequest, _ requestData: Data? = nil) {
-//        self.httpVersion =
-        self.method = request.httpMethod ?? ""
-        self.url = request.url?.absoluteString ?? ""
-        self.headers = request.allHTTPHeaderFields?.map({ (element) in
+    init(_ request: URLRequest, _ requestData: Data? = nil, metrics: URLSessionTaskMetrics? = nil) {
+        httpVersion = metrics?.transactionMetrics.compactMap({ $0.networkProtocolName }).first
+        method = request.httpMethod ?? ""
+        url = request.url?.absoluteString ?? ""
+        headers = request.allHTTPHeaderFields?.map({ (element) in
             let (name, value) = element
             return HTTPArchive.Log.Entry.Header(name: name, value: value)
         }) ?? []
-        self.postData = PostData(request, requestData)
+        postData = PostData(request, requestData)
     }
 }
 
@@ -73,28 +83,27 @@ extension HTTPArchive.Log.Entry.Request.PostData {
 }
 
 extension HTTPArchive.Log.Entry.Response {
-    init(_ response: URLResponse, _ responseData: Data? = nil) {
-//        self.httpVersion =
-        self.status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        self.headers = (response as? HTTPURLResponse)?.allHeaderFields.compactMap({ (element) in
+    init(_ response: URLResponse, _ responseData: Data? = nil, metrics: URLSessionTaskMetrics? = nil) {
+        httpVersion = metrics?.transactionMetrics.compactMap({ $0.networkProtocolName }).first
+        status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        headers = (response as? HTTPURLResponse)?.allHeaderFields.compactMap({ (element) in
             guard case let (name as String, value as String) = element else {
                 return nil
             }
             return HTTPArchive.Log.Entry.Header(name: name, value: value)
         }) ?? []
-        self.content = Content(response, responseData)
+        content = Content(response, responseData)
     }
 }
 
 extension HTTPArchive.Log.Entry.Response.Content {
     init(_ response: URLResponse, _ responseData: Data? = nil) {
-        self.mimeType = response.mimeType ?? ""
+        mimeType = response.mimeType ?? ""
         if mimeType.starts(with: "text/") {
-    //        self.encoding =
-            self.text = responseData.flatMap({ String(data: $0, encoding: .utf8) }) ?? ""
+            text = responseData.flatMap({ String(data: $0, encoding: .utf8) }) ?? ""
         } else {
-            self.encoding = "base64"
-            self.text = responseData?.base64EncodedString() ?? ""
+            encoding = "base64"
+            text = responseData?.base64EncodedString() ?? ""
         }
     }
 }

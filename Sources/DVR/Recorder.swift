@@ -21,7 +21,7 @@ public class Recorder {
     private var metricsByRequestTask: [URLSessionTask: URLSessionTaskMetrics] = [:]
 
     func write() {
-        var har = HTTPArchive(log: HTTPArchive.Log(version: "v1", entries: []))
+        var har = HTTPArchive(log: HTTPArchive.Log(version: "1.2", creator: HTTPArchive.Log.Creator(name: "DVR", version: "0.1", comment: nil), entries: []))
 
         for task in requestTasks {
             guard let request = task.originalRequest, let response = task.response else {
@@ -29,7 +29,7 @@ public class Recorder {
             }
             let metrics = metricsByRequestTask[task]
             print(metrics)
-            har.log.entries.append(HTTPArchive.Log.Entry(request: request, response: response, responseData: responseDatasByRequestTask[task]))
+            har.log.entries.append(HTTPArchive.Log.Entry(request: request, response: response, responseData: responseDatasByRequestTask[task], metrics: metrics))
         }
 
         try? writer.write(har: har)
@@ -45,11 +45,7 @@ class RecorderPathWriter: RecorderWriter {
 
     func write(har: HTTPArchive) throws {
         let encoder = JSONEncoder()
-        if #available(iOSApplicationExtension 11.0, *) {
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        } else {
-            encoder.outputFormatting = [.prettyPrinted]
-        }
+        encoder.outputFormatting = [.prettyPrinted]
         let data = try encoder.encode(har)
         try data.write(to: url)
     }
