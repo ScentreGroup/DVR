@@ -96,8 +96,8 @@ public final class Session: URLSession {
     // MARK: - Internal
 
     func interactionForRequest(_ request: URLRequest) -> Interaction? {
-        for cassette in cassettes {
-            if let interaction = cassette.interactionForRequest(request) {
+        for var cassette in cassettes {
+            if let interaction = cassette.removeFirstInteractionForRequest(request) {
                 return interaction
             }
         }

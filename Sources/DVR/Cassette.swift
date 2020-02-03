@@ -13,11 +13,11 @@ extension RangeReplaceableCollection {
     }
 }
 
-public class Cassette {
+public struct Cassette {
 
     // MARK: - Initializers
 
-    init(har: HTTPArchive) {
+    public init(har: HTTPArchive) {
         self.har = har
     }
 
@@ -27,7 +27,7 @@ public class Cassette {
 
     // MARK: - Functions
 
-    func interactionForRequest(_ request: URLRequest) -> Interaction? {
+    mutating func removeFirstInteractionForRequest(_ request: URLRequest) -> Interaction? {
         guard let entry = har.log.entries.removeFirst(where: { entry in
             guard let entryRequest = URLRequest(entry.request) else {
                 return false
@@ -46,28 +46,28 @@ public class Cassette {
 }
 
 extension Cassette {
-    public convenience init?(testResource: String) {
+    public init?(testResource: String) {
         guard let testBundle = Bundle.allBundles.first(where: { $0.bundlePath.hasSuffix(".xctest") }) else {
             return nil
         }
         self.init(resource: testResource, in: testBundle)
     }
     
-    public convenience init?(resource: String, in bundle: Bundle) {
+    public init?(resource: String, in bundle: Bundle) {
         guard let path = bundle.path(forResource: resource, ofType: nil) else {
             return nil
         }
         self.init(path: path)
     }
 
-    public convenience init?(url: URL) {
+    public init?(url: URL) {
         guard url.isFileURL else {
             return nil
         }
         self.init(path: url.path)
     }
 
-    public convenience init?(path: String) {
+    public init?(path: String) {
         do {
             let data = try Data(contentsOf: URL(fileURLWithPath: path))
             let decoder = JSONDecoder()
