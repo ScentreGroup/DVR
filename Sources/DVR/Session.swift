@@ -149,6 +149,11 @@ open class Session: URLSession {
         }
 
         if let delegate = delegate as? URLSessionTaskDelegate {
+            if #available(iOSApplicationExtension 10.0, *) {
+                let metrics = URLSessionTaskMetrics()
+                delegate.urlSession?(self, task: task, didFinishCollecting: metrics)
+            }
+
             delegate.urlSession?(self, task: task, didCompleteWithError: nil)
         }
     }
