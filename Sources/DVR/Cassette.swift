@@ -52,7 +52,7 @@ extension Cassette {
         }
         self.init(resource: testResource, in: testBundle)
     }
-    
+
     public init?(resource: String, in bundle: Bundle) {
         guard let path = bundle.path(forResource: resource, ofType: nil) else {
             return nil
