@@ -46,6 +46,9 @@ final class SessionDataTask: URLSessionDataTask {
 
         guard let interaction = session.interactionForRequest(request) else {
             session.delegateQueue.addOperation {
+                let metrics = URLSessionTaskMetrics()
+                session.task(self, didFinishCollecting: metrics)
+
                 session.task(self, didCompleteWithError: NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet, userInfo: nil))
             }
             return
@@ -66,6 +69,9 @@ final class SessionDataTask: URLSessionDataTask {
         }
 
         session.delegateQueue.addOperation {
+            let metrics = URLSessionTaskMetrics()
+            session.task(self, didFinishCollecting: metrics)
+
             session.task(self, didCompleteWithError: nil)
         }
     }

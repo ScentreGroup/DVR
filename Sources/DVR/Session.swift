@@ -110,6 +110,12 @@ public final class Session: URLSession {
         }
     }
 
+    func task(_ task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        if let delegate = delegate as? URLSessionTaskDelegate {
+            delegate.urlSession?(self, task: task, didFinishCollecting: metrics)
+        }
+    }
+
     func task(_ task: URLSessionTask, didCompleteWithError error: Error?) {
         if let delegate = delegate as? URLSessionTaskDelegate {
             delegate.urlSession?(self, task: task, didCompleteWithError: error)

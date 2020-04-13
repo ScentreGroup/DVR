@@ -58,13 +58,13 @@ public struct HTTPArchive: Codable {
 
 extension HTTPArchive.Log.Entry {
     init(request: URLRequest, requestData: Data? = nil, response: URLResponse, responseData: Data? = nil, metrics: URLSessionTaskMetrics? = nil) {
-        self.request = Request(request, requestData)
+        self.request = Request(request)
         self.response = Response(response, responseData)
     }
 }
 
 extension HTTPArchive.Log.Entry.Request {
-    init(_ request: URLRequest, _ requestData: Data? = nil, metrics: URLSessionTaskMetrics? = nil) {
+    init(_ request: URLRequest, metrics: URLSessionTaskMetrics? = nil) {
         httpVersion = metrics?.transactionMetrics.compactMap({ $0.networkProtocolName }).first
         method = request.httpMethod ?? ""
         url = request.url?.absoluteString ?? ""
@@ -72,13 +72,18 @@ extension HTTPArchive.Log.Entry.Request {
             let (name, value) = element
             return HTTPArchive.Log.Entry.Header(name: name, value: value)
         }) ?? []
-        postData = PostData(request, requestData)
+        postData = PostData(request)
     }
 }
 
 extension HTTPArchive.Log.Entry.Request.PostData {
-    init?(_ request: URLRequest, _ requestData: Data? = nil) {
-        return nil
+    init?(_ request: URLRequest) {
+        guard let requestData = request.httpBody else {
+            return nil
+        }
+        mimeType = ""
+        self.encoding = "base64"
+        self.text = requestData.base64EncodedString()
     }
 }
 

@@ -58,7 +58,7 @@ extension Recorder: EventMonitor {
     }
 
     public func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        responseDatasByRequestTask[dataTask] = data
+        responseDatasByRequestTask[dataTask, default: Data()].append(data)
     }
 
     public func requestDidFinish(_ request: Request) {
