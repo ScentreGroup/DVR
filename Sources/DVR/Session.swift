@@ -215,7 +215,7 @@ open class Session: URLSession {
             string = string.appending("\n") as NSString
 
             if let data = string.data(using: String.Encoding.utf8.rawValue) {
-                try? data.write(to: cassetteURL, options: [.atomic])
+                try data.write(to: cassetteURL, options: [.atomic])
                 return
             }
 
