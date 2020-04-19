@@ -4,14 +4,12 @@ struct Cassette {
 
     // MARK: - Properties
 
-    let name: String
     let interactions: [Interaction]
 
 
     // MARK: - Initializers
 
-    init(name: String, interactions: [Interaction]) {
-        self.name = name
+    init(interactions: [Interaction]) {
         self.interactions = interactions
     }
 
@@ -35,16 +33,11 @@ struct Cassette {
 extension Cassette {
     var dictionary: [String: Any] {
         return [
-            "name": name as Any,
             "interactions": interactions.map { $0.dictionary }
         ]
     }
 
     init?(dictionary: [String: Any]) {
-        guard let name = dictionary["name"] as? String else { return nil }
-
-        self.name = name
-
         if let array = dictionary["interactions"] as? [[String: Any]] {
             interactions = array.compactMap { Interaction(dictionary: $0) }
         } else {

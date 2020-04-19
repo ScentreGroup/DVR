@@ -1,19 +1,11 @@
 import Foundation
 
 open class Session: URLSession {
-
     // MARK: - Properties
 
-    public static var defaultTestBundle: Bundle? {
-        return Bundle.allBundles.first { $0.bundlePath.hasSuffix(".xctest") }
-    }
-
-    open var outputDirectory: String
-    public let cassetteName: String
+    public let cassetteURL: URL
     public let backingSession: URLSession
     open var recordingEnabled = true
-
-    private let testBundle: Bundle
 
     private var recording = false
     private var needsPersistence = false
@@ -35,10 +27,8 @@ open class Session: URLSession {
 
     // MARK: - Initializers
 
-    public init(outputDirectory: String = "~/Desktop/DVR/", cassetteName: String, testBundle: Bundle = Session.defaultTestBundle!, backingSession: URLSession = URLSession.shared) {
-        self.outputDirectory = outputDirectory
-        self.cassetteName = cassetteName
-        self.testBundle = testBundle
+    public init(cassetteURL: URL, backingSession: URLSession = URLSession.shared) {
+        self.cassetteURL = cassetteURL
         self.backingSession = backingSession
         super.init()
     }
@@ -122,8 +112,7 @@ open class Session: URLSession {
     // MARK: - Internal
 
     var cassette: Cassette? {
-        guard let path = testBundle.path(forResource: cassetteName, ofType: "json"),
-            let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+        guard let data = try? Data(contentsOf: cassetteURL),
             let raw = try? JSONSerialization.jsonObject(with: data, options: []),
             let json = raw as? [String: Any]
         else { return nil }
@@ -201,24 +190,21 @@ open class Session: URLSession {
             abort()
         }
 
+        let cassetteDirectory = cassetteURL.deletingLastPathComponent()
+
         // Create directory
-        let outputDirectory = (self.outputDirectory as NSString).expandingTildeInPath
-        let fileManager = FileManager.default
-        if !fileManager.fileExists(atPath: outputDirectory) {
-            do {
-              try fileManager.createDirectory(atPath: outputDirectory, withIntermediateDirectories: true, attributes: nil)
-            } catch {
-              print("[DVR] Failed to create cassettes directory.")
-            }
+        do {
+          try FileManager.default.createDirectory(at: cassetteDirectory, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+          print("[DVR] Failed to create cassettes directory.")
         }
 
-        let cassette = Cassette(name: cassetteName, interactions: interactions)
+        let cassette = Cassette(interactions: interactions)
 
         // Persist
 
-
         do {
-            let outputPath = ((outputDirectory as NSString).appendingPathComponent(cassetteName) as NSString).appendingPathExtension("json")!
+
             let data = try JSONSerialization.data(withJSONObject: cassette.dictionary, options: [.prettyPrinted])
 
             // Add trailing new line
@@ -229,8 +215,7 @@ open class Session: URLSession {
             string = string.appending("\n") as NSString
 
             if let data = string.data(using: String.Encoding.utf8.rawValue) {
-                try? data.write(to: URL(fileURLWithPath: outputPath), options: [.atomic])
-                print("[DVR] Persisted cassette at \(outputPath). Please add this file to your test target")
+                try? data.write(to: cassetteURL, options: [.atomic])
                 return
             }
 
