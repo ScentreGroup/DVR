@@ -352,9 +352,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3647AFAF1B335D5500EF10D4 /* Build configuration list for PBXNativeTarget "DVR-iOS" */;
 			buildPhases = (
+				3647AF981B335D5500EF10D4 /* Headers */,
 				3647AF961B335D5500EF10D4 /* Sources */,
 				3647AF971B335D5500EF10D4 /* Frameworks */,
-				3647AF981B335D5500EF10D4 /* Headers */,
 				3647AF991B335D5500EF10D4 /* Resources */,
 			);
 			buildRules = (
@@ -461,6 +461,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 			);
 			mainGroup = 3647AF911B335D5500EF10D4;
