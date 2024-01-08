@@ -42,6 +42,10 @@ final class SessionDataTask: URLSessionDataTask {
     }
 
     override func resume() {
+        if _state == .running {
+            return
+        }
+        
         let cassette = session.cassette
 
         _state = .running
