@@ -1,5 +1,9 @@
 import Foundation
 
+enum DVRError: Error {
+    case interactionNotFound
+}
+
 final class SessionDataTask: URLSessionDataTask {
 
     // MARK: - Types
@@ -70,7 +74,10 @@ final class SessionDataTask: URLSessionDataTask {
         }
 
         if cassette != nil {
-            fatalError("[DVR] Invalid request. The request was not found in the cassette.")
+            if let completion = self.completion {
+                completion(nil, nil, DVRError.interactionNotFound as NSError)
+            }
+            return
         }
 
         // Cassette is missing. Record.
